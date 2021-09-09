@@ -1,0 +1,6 @@
+module Pods_BNET_Test {
+  umbrella header "Pods-BNET_Test-umbrella.h"
+
+  export *
+  module * { export * }
+}
