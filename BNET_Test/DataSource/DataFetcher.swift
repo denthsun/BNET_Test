@@ -16,107 +16,41 @@ enum APIMethods {
 
 class DataFetcher {
     
-    let dataProvider = DataProvider()
-
-    private let urlString = "https://bnet.i-partner.ru/testAPI/"
+    private let apiUrlString = "https://bnet.i-partner.ru/testAPI/"
     private let token = "N0r5HVW-gF-Cwj82tY"
-    private var sessionID = "6VuJikGayI9rxWFCBE"
+    var sessionID = "6VuJikGayI9rxWFCBE"
     
+    let dataProvider = DataProvider()
+    var networkDataFetcher: DataFetcherProtocol
     let entriesGroup = DispatchGroup()
+    let newSessionGroup = DispatchGroup()
+    let addEntryGroup = DispatchGroup()
     
-    func newSessionRequest() {
-        //  new_session
-        guard let url = URL(string: urlString) else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("\(token)", forHTTPHeaderField: "token")
-        
-        let sessionData = "a=\(APIMethods.new_session)".data(using: .utf8)
-        request.httpBody = sessionData
-        
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard error == nil else { print(error!.localizedDescription);
-                let alert = UIAlertController(title: "Something is wrong", message: "Check your network!", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: { _ in
-                NSLog("The \"OK\" alert occured.")
-                }))
-                let vc = ListViewController()
-                vc.present(alert, animated: true, completion: nil);
-                return }
-            guard let data = data else { print("Empty data"); return }
-  
-            let decoder = JSONDecoder()
-            do {
-                
-                let newSessionID = try decoder.decode(NewSessionModel.self, from: data)
-                self?.sessionID = newSessionID.data.session
-                
-            } catch {
-                print("OUCH: \(error)")
-            }
-            
-            if let str = String(data: data, encoding: .utf8) {
-                print(str)
-            }
-        }
-        task.resume()
+    func newSessionRequest(completion: @escaping (APIResponseModel?) -> Void) {
+        newSessionGroup.enter()
+        networkDataFetcher.fetchPOSTGenericData(urlString: self.apiUrlString, parameters: "a=\(APIMethods.new_session)", response: completion)
     }
     
-    func entriesRequest() {
-        // get_entries
+    func getEntriesRequest(completion: @escaping (EntriesListModel?) -> Void) {
         entriesGroup.enter()
-        guard let url = URL(string: urlString) else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("\(token)", forHTTPHeaderField: "token")
-        
-        let sessionData = "a=\(APIMethods.get_entries)&session=\(sessionID)".data(using: .utf8)
-        request.httpBody = sessionData
-        
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            
-            guard error == nil else { print(error!.localizedDescription); return }
-            guard let data = data else { print("Empty data"); return }
-            
-            let decoder = JSONDecoder()
-            do {
-                
-                let entriesData = try decoder.decode(EntriesListModel.self, from: data)
-                self?.dataProvider.entries = entriesData
-                print(entriesData.data[0][0].id)
-                
-                self?.entriesGroup.leave()
-                print(self?.dataProvider.entries as Any)
-            } catch {
-                print("OUCH: \(error)")
-            }
-            if let str = String(data: data, encoding: .utf8) {
-                print(str)
-            }
-        }
-        task.resume()
+        networkDataFetcher.fetchPOSTGenericData(urlString: self.apiUrlString, parameters: "a=\(APIMethods.get_entries)&session=\(sessionID)", response: completion)
     }
     
-    func addNewEntryRequest(body: String) {
-        // add_entry
-        guard let url = URL(string: urlString) else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("\(token)", forHTTPHeaderField: "token")
-        
-        let sessionData = "a=\(APIMethods.add_entry)&session=\(sessionID)&body=\(body)".data(using: .utf8)
-        request.httpBody = sessionData
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard error == nil else { print(error!.localizedDescription); return }
-            guard let data = data else { print("Empty data"); return }
-            
-            if let str = String(data: data, encoding: .utf8) {
-                print(str)
-            }
-        }
-        task.resume()
+    func addNewEntryRequest(body: String, completion: @escaping (APIResponseModel?) -> Void ) {
+        addEntryGroup.enter()
+        networkDataFetcher.fetchPOSTGenericData(urlString: self.apiUrlString, parameters: "a=\(APIMethods.add_entry)&session=\(sessionID)&body=\(body)", response: completion)
+    }
+    
+    // костыль похоже, но в данной ситуации проще сделать новый запрос, чем менять всю логику getEntriesRequest
+    // но это все равно не сработало(
+    func getNewEntriesRequest(completion: @escaping (EntriesListModel?) -> Void) {
+        networkDataFetcher.fetchPOSTGenericData(urlString: self.apiUrlString, parameters: "a=\(APIMethods.get_entries)&session=\(sessionID)", response: completion)
+    }
+    
+    init(networkDataFetcher: DataFetcherProtocol = NetworkDataFetcher()) {
+        self.networkDataFetcher = networkDataFetcher
     }
 }
+
 
 

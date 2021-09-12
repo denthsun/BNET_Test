@@ -7,22 +7,22 @@
 
 import UIKit
 
-final class TableViewCell: UITableViewCell {
+final class ItemCell: UITableViewCell {
     
-    static let identifier = "TableViewCell"
+    static let identifier = "ItemCell"
     
     let dateLabel = UILabel()
     let bodyLabel = UILabel()
 
     override func awakeFromNib() {
         super.awakeFromNib()
-        setupUI()
-        constraintUI()
     }
     
     private func setupUI() {
         [dateLabel, bodyLabel].forEach { contentView.addSubview($0) }
         selectionStyle = .none
+        bodyLabel.numberOfLines = 0
+        dateLabel.font = UIFont.italicSystemFont(ofSize: 20)
     }
     
     private func constraintUI() {
@@ -30,16 +30,14 @@ final class TableViewCell: UITableViewCell {
         bodyLabel.anchor(top: dateLabel.safeAreaLayoutGuide.bottomAnchor, leading: contentView.safeAreaLayoutGuide.leadingAnchor, bottom: contentView.safeAreaLayoutGuide.bottomAnchor, trailing: contentView.safeAreaLayoutGuide.trailingAnchor)
     }
     
-    func setDateLabel(date: String) {
-        dateLabel.text = "Date: \(date)"
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setupUI()
+        constraintUI()
     }
     
-    func setBodyLabel(body: String) {
-        bodyLabel.text = body.maxLength(length: 200)
-    }
-    
-    static func nib() -> UINib {
-        return UINib(nibName: "TableViewCell", bundle: nil)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
 }
